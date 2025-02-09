@@ -175,6 +175,9 @@ if __name__ == "__main__":
     src_root = "D:/AI/Datasets/WIDER_FACE/ORIG"
     dst_root = "D:/AI/Datasets/WIDER_FACE/YOLO"
 
+    if not os.path.exists(src_root):
+        raise FileNotFoundError(f"目录不存在！({src_root})")
+
     wider_splits = {
         "train": os.path.join(src_root, "split", "wider_face_train_bbx_gt.txt"),
         "val": os.path.join(src_root, "split", "wider_face_val_bbx_gt.txt"),
