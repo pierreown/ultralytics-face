@@ -2,8 +2,8 @@ import os
 from ultralytics import YOLO
 
 params = {
-    "project": "output/face-detect",
-    "data": "dataset/wider-face.yaml",
+    "project": "outputs/face-detect",
+    "data": "datasets/wider-face.yaml",
     "epochs": 100,
     "imgsz": 640,
     "optimizer": "SGD",
