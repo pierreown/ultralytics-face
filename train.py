@@ -7,7 +7,7 @@ params = {
     "epochs": 100,
     "patience": 30,
     "imgsz": 640,
-    "batch": 0.95,
+    "batch": 16,
     "device": 0,
 }
 
