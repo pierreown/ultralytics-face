@@ -1,0 +1,5 @@
+weights/*
+outputs/*
+
+!weights/.gitkeep
+!outputs/.gitkeep
