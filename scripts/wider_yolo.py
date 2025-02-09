@@ -126,11 +126,11 @@ def conv_wider_to_yolo(splits: dict, images: dict, data_root: str):
                         float(label["h"]),
                     )
 
-                    #
-                    sx = min(max(sx, 0), img_w)
-                    sy = min(max(sy, 0), img_h)
-                    ex = min(max(sx + w, 0), img_w)
-                    ey = min(max(sy + h, 0), img_h)
+                    # 坐标修正
+                    sx = max(0, min(img_w, sx))
+                    sy = max(0, min(img_h, sy))
+                    ex = max(0, min(img_w, sx + w))
+                    ey = max(0, min(img_h, sy + h))
                     w, h = ex - sx, ey - sy
 
                     # 过滤过小的目标, 绝对尺寸
@@ -139,20 +139,21 @@ def conv_wider_to_yolo(splits: dict, images: dict, data_root: str):
                         continue
 
                     # 坐标尺寸归一化
-                    x, y = (sx + w / 2) / img_w, (sy + h / 2) / img_h
-                    w, h = w / img_w, h / img_h
+                    cx, cy = sx + w / 2, sy + h / 2
+                    nx, ny = cx / img_w, cy / img_h
+                    nw, nh = w / img_w, h / img_h
 
                     # 过滤过小的目标，相对尺寸
-                    if w < 0.01 or h < 0.01:
+                    if nw < 0.01 or nh < 0.01:
                         small_filter += 1
                         continue
 
                     target_count += 1
                     has_label = True
 
-                    # 将边界框转换为YOLO格式，并写入标签文件
-                    x, y = (sx + w / 2) / img_w, (sy + h / 2) / img_h
-                    f.write("{} {:.6f} {:.6f} {:.6f} {:.6f}\n".format(0, x, y, w, h))
+                    # 将目标框转换为YOLO格式，并写入标签文件
+                    line = "{} {:.6f} {:.6f} {:.6f} {:.6f}\n".format(0, nx, ny, nw, nh)
+                    f.write(line)
 
             # 负样本：空白图
             if not has_label:
