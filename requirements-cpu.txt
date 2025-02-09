@@ -1,0 +1,9 @@
+ultralytics
+
+# PyTorch
+torch
+torchvision
+torchaudio
+
+# ONNX
+onnxruntime
