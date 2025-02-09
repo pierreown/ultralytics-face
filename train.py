@@ -5,9 +5,9 @@ params = {
     "project": "outputs/face-detect",
     "data": "datasets/wider-face.yaml",
     "epochs": 100,
+    "patience": 30,
     "imgsz": 640,
-    "optimizer": "SGD",
-    "batch": 0.90,
+    "batch": 0.95,
     "device": 0,
 }
 

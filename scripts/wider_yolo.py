@@ -59,6 +59,12 @@ def parse_wider_split(split_path: str):
 # 将 WIDER 数据集转换为 YOLO 格式
 def conv_wider_to_yolo(splits: dict, images: dict, data_root: str):
     for split_name, split_path in splits.items():
+        print(f"--- {split_name} ---")
+
+        image_count, target_count, empty_count = 0, 0, 0
+        inval_filter, illum_filter, occlu_filter, pose_filter = 0, 0, 0, 0
+        small_filter = 0
+
         # 设置目标图像存储路径
         image_root = os.path.join(data_root, "images", split_name)
         if not os.path.exists(image_root):
@@ -70,7 +76,7 @@ def conv_wider_to_yolo(splits: dict, images: dict, data_root: str):
             os.makedirs(label_root)
 
         # 遍历每张图片的路径及其标签，进行数据转换
-        for image_path, labels in parse_wider_split(split_path):
+        for image_path, labels in tqdm(parse_wider_split(split_path)):
             # 获取图像的绝对路径
             image_abs_path = os.path.join(images[split_name], image_path)
             # 获取图像文件名
@@ -87,41 +93,81 @@ def conv_wider_to_yolo(splits: dict, images: dict, data_root: str):
                 continue
             img_w, img_h = img_size
 
+            image_count += 1
+
             has_label = False  # 标志，表示该图片是否有标签
             with open(label_path, "w", encoding="utf-8") as f:
                 for label in labels:
-                    # 归一化边界框坐标
-                    sx, sy, box_w, box_h = (
+
+                    # 过滤无效目标
+                    if label["invalid"] == 1:
+                        inval_filter += 1
+                        continue
+
+                    # # 过滤极端光照条件下的目标
+                    # if label["illumination"] == 1:
+                    #     illum_filter += 1
+                    #     continue
+
+                    # 过滤严重遮挡目标
+                    if label["occlusion"] == 2:
+                        occlu_filter += 1
+                        continue
+
+                    # 过滤极端角度的目标
+                    if label["pose"] == 2:
+                        pose_filter += 1
+                        continue
+
+                    sx, sy, w, h = (
                         float(label["x"]),
                         float(label["y"]),
                         float(label["w"]),
                         float(label["h"]),
                     )
+
+                    #
                     sx = min(max(sx, 0), img_w)
                     sy = min(max(sy, 0), img_h)
-                    ex = min(max(sx + box_w, 0), img_w)
-                    ey = min(max(sy + box_h, 0), img_h)
-                    box_w, box_h = ex - sx, ey - sy
+                    ex = min(max(sx + w, 0), img_w)
+                    ey = min(max(sy + h, 0), img_h)
+                    w, h = ex - sx, ey - sy
 
-                    w, h = box_w / img_w, box_h / img_h
-
-                    # 如果目标过小，则跳过该目标
-                    if w < 0.05 or h < 0.05:
+                    # 过滤过小的目标, 绝对尺寸
+                    if w < 8 or h < 8:
+                        small_filter += 1
                         continue
 
-                    # 将边界框转换为YOLO格式，并写入标签文件
-                    x, y = (sx + box_w / 2) / img_w, (sy + box_h / 2) / img_h
-                    f.write("{} {:.6f} {:.6f} {:.6f} {:.6f}\n".format(0, x, y, w, h))
+                    # 坐标尺寸归一化
+                    x, y = (sx + w / 2) / img_w, (sy + h / 2) / img_h
+                    w, h = w / img_w, h / img_h
+
+                    # 过滤过小的目标，相对尺寸
+                    if w < 0.01 or h < 0.01:
+                        small_filter += 1
+                        continue
+
+                    target_count += 1
                     has_label = True
 
-            # 如果没有标签，则删除标签文件
+                    # 将边界框转换为YOLO格式，并写入标签文件
+                    x, y = (sx + w / 2) / img_w, (sy + h / 2) / img_h
+                    f.write("{} {:.6f} {:.6f} {:.6f} {:.6f}\n".format(0, x, y, w, h))
+
+            # 负样本：空白图
             if not has_label:
-                os.remove(label_path)
-                continue
+                empty_count += 1
 
             # 创建图片符号链接
             if not os.path.exists(image_tgt_path):
                 os.symlink(image_abs_path, image_tgt_path)
+
+        print(
+            f"已过滤目标 无效: {inval_filter} 个，极端光照: {illum_filter} 个，严重遮挡: {occlu_filter} 个，极端角度: {pose_filter} 个, 尺寸过小: {small_filter} 个"
+        )
+        print(
+            f"共处理 图片: {image_count} 张，目标: {target_count} 个，背景图: {empty_count} 张"
+        )
 
 
 if __name__ == "__main__":
