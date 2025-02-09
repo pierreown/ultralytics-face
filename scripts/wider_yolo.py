@@ -104,11 +104,6 @@ def conv_wider_to_yolo(splits: dict, images: dict, data_root: str):
                         inval_filter += 1
                         continue
 
-                    # # 过滤极端光照条件下的目标
-                    # if label["illumination"] == 1:
-                    #     illum_filter += 1
-                    #     continue
-
                     # 过滤严重遮挡目标
                     if label["occlusion"] == 2:
                         occlu_filter += 1
@@ -118,6 +113,11 @@ def conv_wider_to_yolo(splits: dict, images: dict, data_root: str):
                     if label["pose"] == 2:
                         pose_filter += 1
                         continue
+
+                    # # 过滤极端光照条件下的目标
+                    # if label["illumination"] == 1:
+                    #     illum_filter += 1
+                    #     continue
 
                     sx, sy, w, h = (
                         float(label["x"]),
